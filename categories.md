@@ -3,6 +3,12 @@ title: "Categories"
 permalink: /categories/
 ---
 
+<style>
+.site-footer {
+  display: none !important;
+}
+</style>
+
 Posts organized by category.
 
 {% for category in site.categories %}

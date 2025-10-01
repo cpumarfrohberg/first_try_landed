@@ -3,6 +3,12 @@ title: "Posts"
 permalink: /posts/
 ---
 
+<style>
+.site-footer {
+  display: none !important;
+}
+</style>
+
 All blog posts organized chronologically.
 
 {% for post in site.posts %}

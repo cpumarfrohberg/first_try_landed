@@ -1,8 +1,57 @@
-theme: minima
+# Site Settings
 title: first_try_landed_blog
-author: krlz
+tagline: Reflections on stuff as it happens
 description: Reflections on stuff as it happens
+author: krlz
 email: cpumarfrohberg@example.com
-baseurl: ""
 url: "https://cpumarfrohberg.github.io"
-github_username: cpumarfrohberg
+baseurl: "/first_try_landed"
+
+# Build Settings
+theme: jekyll-theme-minimal-mistakes
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# Site Author
+author:
+  name: krlz
+  avatar: "/assets/images/bio-photo.jpg"
+  bio: "Learning Python and sharing insights"
+  location: "Somewhere"
+  email: cpumarfrohberg@example.com
+  links:
+    - label: "GitHub"
+      icon: "fab fa-github"
+      url: "https://github.com/cpumarfrohberg"
+
+# Site Footer
+footer:
+  links:
+    - label: "GitHub"
+      icon: "fab fa-github"
+      url: "https://github.com/cpumarfrohberg"
+
+# Defaults
+defaults:
+  # _posts
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: single
+      author_profile: true
+      read_time: true
+      comments: false
+      share: true
+      related: true
+
+# Navigation
+main:
+  - title: "About"
+    url: "/about/"
+  - title: "Posts"
+    url: "/posts/"
+  - title: "Categories"
+    url: "/categories/"

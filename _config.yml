@@ -1,4 +1,8 @@
 theme: minima
 title: first_try_landed_blog
-author: cpumarfrohberg
-description: diverse on plotting data and drawing conclusions
+author: krlz
+description: Reflections on stuff as it happens
+email: cpumarfrohberg@example.com
+baseurl: ""
+url: "https://cpumarfrohberg.github.io"
+github_username: cpumarfrohberg

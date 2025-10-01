@@ -8,7 +8,7 @@ url: "https://cpumarfrohberg.github.io"
 baseurl: "/first_try_landed"
 
 # Build Settings
-theme: jekyll-theme-minimal-mistakes
+theme: minima
 plugins:
   - jekyll-feed
   - jekyll-sitemap

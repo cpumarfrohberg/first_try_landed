@@ -1,7 +1,7 @@
 ---
 title: "Getting fluent in Python: some notes"
 date: 2025-10-01
-categories: [Python, Credit]
+categories: [Python]
 tags: [Fluent Python, Programming, Data Model]
 ---
 

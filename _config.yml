@@ -15,23 +15,11 @@ plugins:
   - jekyll-seo-tag
 
 # Site Author
-author:
-  name: krlz
-  avatar: "/assets/images/bio-photo.jpg"
-  bio: "Learning Python and sharing insights"
-  location: "Somewhere"
-  email: cpumarfrohberg@example.com
-  links:
-    - label: "GitHub"
-      icon: "fab fa-github"
-      url: "https://github.com/cpumarfrohberg"
+author: krlz
+github_username: cpumarfrohberg
 
 # Site Footer
-footer:
-  links:
-    - label: "GitHub"
-      icon: "fab fa-github"
-      url: "https://github.com/cpumarfrohberg"
+github_username: cpumarfrohberg
 
 # Defaults
 defaults:

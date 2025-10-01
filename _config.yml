@@ -6,6 +6,7 @@ author: krlz
 email: cpumarfrohberg@example.com
 url: "https://cpumarfrohberg.github.io"
 baseurl: "/first_try_landed"
+github_username: cpumarfrohberg
 
 # Build Settings
 theme: minima
@@ -13,13 +14,6 @@ plugins:
   - jekyll-feed
   - jekyll-sitemap
   - jekyll-seo-tag
-
-# Site Author
-author: krlz
-github_username: cpumarfrohberg
-
-# Site Footer
-github_username: cpumarfrohberg
 
 # Defaults
 defaults:

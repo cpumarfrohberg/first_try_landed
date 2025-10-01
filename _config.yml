@@ -49,8 +49,6 @@ defaults:
 
 # Navigation
 main:
-  - title: "About"
-    url: "/about/"
   - title: "Posts"
     url: "/posts/"
   - title: "Categories"

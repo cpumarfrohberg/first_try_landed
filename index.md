@@ -1,8 +1,14 @@
 ---
-title: "About"
+layout: default
 ---
 
-Hi! I'm krlz and among other things, I share reflections on stuff as it happens.
+<style>
+.site-footer {
+  display: none !important;
+}
+</style>
+
+Hi! I'm krlz and share reflections on stuff as it happens.
 
 ## What You'll Find Here
 

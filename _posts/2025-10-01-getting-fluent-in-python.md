@@ -1,6 +1,6 @@
 ---
 title: "Getting fluent in Python: some notes"
-date: 2025-10-01
+date: 2025-10-01 00:00:00 -0000
 categories: [Python]
 tags: [Fluent Python, Programming, Data Model]
 ---

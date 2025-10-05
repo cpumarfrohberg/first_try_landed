@@ -1,0 +1,2 @@
+[console_scripts]
+django_agent = django_agent.cli:app

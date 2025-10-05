@@ -20,7 +20,6 @@ For the moment, I expect "Fluent Python" to push me to think more in-depth about
 ### Week 1: The Python Data Model
 * The Python Data Model = Python's Internal API
 * Special Methods Enable Rich Behavior
-* Embrace Duck Typing
 
 ## The tip of an iceberg: Python Data Model
 
@@ -34,27 +33,74 @@ Hence, objects integrate naturally with Python's syntax and built-ins: batteries
 
 ## Special Methods
 
-To better appreciate the "batteries included"-aspect of implementing special methods, consider this example:
+To better appreciate the "batteries included"-aspect of implementing special methods, consider this example of the [zippa](https://pypi.org/project/zippa/) library:
 
 ```python
-import collections
-
-Card = collections.namedtuple("Card", ["rank", "suit"])
-
-class FrenchDeck:
-    ranks = [str(n) for n in range(2, 11)] + list("JQKA")
-    suits = "spades diamonds clubs hearts".split()
-
-    def __init__(self):
-        self._cards = [
-            Card(rank, suit) for suit in self.suits for rank in self.ranks
-        ]
-
-    def __len__(self):
-        return len(self._cards)
-
-    def __getitem__(self, position):
-        return self._cards[position]
+class ZipManager:
+    def __init__(self, config: ZipConfig):
+        self.config = config
+    
+    def pack_items(self, items: list[str], output_zip: Path, compress_level: int, 
+                   overwrite: bool = False) -> Iterator[str]:
+        """Pack items into a zip file with lazy evaluation"""
+        yield f"Starting to pack {len(items)} items from current directory"
+        
+        # Validate output directory
+        _validate_output_directory(output_zip)
+        
+        if output_zip.exists() and not overwrite:
+            yield f"Output file {output_zip} already exists. Skipping."
+            return
+        
+        with ZipFile(str(output_zip), "w", ZIP_DEFLATED, compresslevel=compress_level) as archive:
+            files_added, dirs_added = 0, 0
+            
+            for item_str in items:
+                if item_str == ".":
+                    target_path = Path.cwd()
+                else:
+                    target_path = Path.cwd() / item_str
+                
+                # Validate that the item exists
+                _validate_item(target_path, item_str)
+                yield f"Processing item: {item_str}"
+                
+                for zip_item in _iter_zip_items(target_path, self.config):
+                    if zip_item.item_type == "dir":
+                        archive.writestr(zip_item.arcname, "")
+                        dirs_added += 1
+                        yield f"Added directory: {zip_item.item_path.name}"
+                    else:
+                        archive.write(zip_item.item_path, arcname=zip_item.arcname)
+                        files_added += 1
+                        yield f"Added file: {zip_item.item_path.name}"
+            
+            archive.printdir()
+            print(f"Added {files_added} files and {dirs_added} directories to {output_zip}")
+            yield f"Completed: {files_added} files, {dirs_added} directories"
+    
+    # Special Methods from Python Data Model
+    
+    def __len__(self) -> int:
+        """Return number of exclude patterns in config"""
+        return len(self.config.exclude_patterns)
+    
+    def __repr__(self) -> str:
+        """Developer representation - unambiguous"""
+        return f"ZipManager(config={self.config!r})"
+    
+    def __str__(self) -> str:
+        """User-friendly representation"""
+        patterns = ", ".join(self.config.exclude_patterns) if self.config.exclude_patterns else "none"
+        return f"ZipManager(exclude_patterns=[{patterns}], include_dirs={self.config.include_dirs})"
+    
+    def __contains__(self, pattern: str) -> bool:
+        """Check if pattern is in exclude patterns"""
+        return pattern in self.config.exclude_patterns
+    
+    def __getitem__(self, index: int) -> str:
+        """Get exclude pattern by index"""
+        return self.config.exclude_patterns[index]
 ```
 
 Now we can be super flexible 🕺 with the batteries:

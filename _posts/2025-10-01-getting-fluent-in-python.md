@@ -31,7 +31,7 @@ Hence, objects integrate naturally with Python's syntax and built-ins: batteries
 - `obj[i]` calls `obj.__getitem__(i)`
 - `print(obj)` calls `obj.__str__()` or `obj.__repr__()`
 
-## Special Methods
+## Applying Special Methods: A Real Example
 
 To better appreciate the "batteries included"-aspect of implementing special methods, consider this example of the [zippa](https://pypi.org/project/zippa/) library:
 
@@ -45,7 +45,6 @@ class ZipManager:
         """Pack items into a zip file with lazy evaluation"""
         yield f"Starting to pack {len(items)} items from current directory"
         
-        # Validate output directory
         _validate_output_directory(output_zip)
         
         if output_zip.exists() and not overwrite:
@@ -61,7 +60,6 @@ class ZipManager:
                 else:
                     target_path = Path.cwd() / item_str
                 
-                # Validate that the item exists
                 _validate_item(target_path, item_str)
                 yield f"Processing item: {item_str}"
                 
@@ -103,41 +101,25 @@ class ZipManager:
         return self.config.exclude_patterns[index]
 ```
 
-Now we can be super flexible 🕺 with the batteries:
+## The Magic of Special Methods
+
+Now our `ZipManager` integrates naturally with Python's built-ins and we can be super flexible 🕺 with the batteries:
 
 ```python
-from random import choice
+config = ZipConfig(exclude_patterns=['*.pyc', '__pycache__'], include_dirs=True)
+manager = ZipManager(config)
 
-deck = FrenchDeck()
-len(deck)  # Works because of __len__
+# Rich behavior from special methods
+print(f"Manager: {manager}")  # Uses __str__
+print(f"Debug: {manager!r}")  # Uses __repr__
+print(f"Patterns: {len(manager)}")  # Uses __len__
+print(f"Excludes pyc: {'*.pyc' in manager}")  # Uses __contains__
+print(f"First pattern: {manager[0]}")  # Uses __getitem__
 
-choice(deck)  # Works because of __getitem__
-
-# Slicing works because of __getitem__
-deck[:3]
-
-# Iteration works because of __getitem__
-for card in deck:
-    print(card)
-
-# Reversed iteration works
-for reversed_card in reversed(deck):
-    print(reversed_card)
-
-# Sorting works
-suit_vals = {"spades": 3, "hearts": 2, "diamonds": 1, "clubs": 0}
-
-def spades_high(card: Card) -> int:
-    rank_value = FrenchDeck.ranks.index(card.rank)
-    return rank_value * len(suit_vals) + suit_vals[card.suit]
-
-for sorted_card in sorted(deck, key=spades_high):
-    print(sorted_card)
+# The actual work with lazy evaluation
+for message in manager.pack_items(['src/'], Path('output.zip'), 6):
+    print(message)  # Streams results as they're processed
 ```
-
-So `__getitem__` enables us to slice, iterate through our instance and sort it! Why? Because when we implement special methods like `__getitem__` and `__len__`, `FrenchDeck` behaves like a standard Python *sequence* 💡!
-
-While `FrenchDeck` implicitly inherits from `object`, **most of its functionality is not inherited**, but comes from leveraging the Data Model as well as from composition.
 
 ## How to use Special Methods
 
@@ -148,88 +130,6 @@ Coming back to our initial question of why `len(collection)`, instead of `collec
 - Normally, you should be implementing special methods more often than invoking them explicitly
 - If you need to invoke a special method, it's usually better to call the related built-in function (e.g. `len`, `iter`, `str`,...) (the latter call special methods themselves, which is often faster)
 - The only exception is `__init__`
-
-## The Most Important Uses of Special Methods
-
-- Emulating Numeric Types
-- String Representation
-- Boolean Value of a Custom Type
-
-## String Representation: `__repr__` and `__str__`
-
-### `__repr__`
-
-The `__repr__` special method is called by the `repr` built-in to get the string-representation of the object for inspection. If you don't implement it, Python falls back to the default implementation from object, which looks like:
-
-```python
-<ClassName object at 0x...>
-```
-
-If you do implement it, your objects show meaningful info in:
-- The interactive console (REPL, Jupyter, etc.)
-- Debugging logs
-- Collections (lists, dicts) — because they call `repr` on their elements
-
-Example usage:
-
-```python
-class Card:
-    def __init__(self, rank, suit):
-        self.rank = rank
-        self.suit = suit
-
-    def __repr__(self):
-        return f"Card({self.rank!r}, {self.suit!r})"
-```
-
-The `!r` in an f-string calls `repr()` on the variable, ensuring the representation is unambiguous (e.g., includes quotes around strings, as in `Vector(1,2)` vs `Vector('1','2')`).
-
-### `__str__`
-
-It's called by `str()` built-in and implicitly used by the `print` function: it **should return a string suitable for display to end users**.
-
-### `__repr__` vs `__str__`
-
-#### Behavior
-- `repr(obj)` → calls `obj.__repr__()`
-- `str(obj)` → calls `obj.__str__()`, but falls back to `__repr__()` if not implemented
-- Interactive consoles (`>>> obj`) and containers (`[obj]`) use `__repr__`
-
-Additional example:
-
-```python
-class Card:
-    def __init__(self, rank, suit):
-        self.rank = rank
-        self.suit = suit
-
-    def __repr__(self):
-        # Developer-focused: unambiguous, includes quotes
-        return f"Card({self.rank!r}, {self.suit!r})"
-
-    def __str__(self):
-        # User-focused: friendly, readable
-        return f"{self.rank} of {self.suit}"
-```
-
-And usage:
-
-```python
-c = Card("7", "hearts")
-
-print(repr(c))   # Calls __repr__
-# Output: Card('7', 'hearts')
-
-print(str(c))    # Calls __str__
-# Output: 7 of hearts
-
-print(c)         # Also calls __str__
-# Output: 7 of hearts
-
-cards = [c]
-print(cards)     # Uses __repr__ for contained objects
-# Output: [Card('7', 'hearts')]
-```
 
 #### Best practices
 - Always implement `__repr__` in custom classes — it's invaluable for debugging

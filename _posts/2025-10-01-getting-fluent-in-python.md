@@ -1,8 +1,6 @@
 ---
 title: "Getting fluent in Python: some notes"
-date: 2025-10-01 00:00:00 -0000
-categories: [Python]
-tags: [Fluent Python, Programming, Data Model]
+date: 2025-10-01
 ---
 
 I've decided to dive deep into Python by working through "Fluent Python" by Luciano Ramalho. Here's what I've picked up while doing so.

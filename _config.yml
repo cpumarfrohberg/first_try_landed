@@ -1,36 +1,11 @@
-# Site Settings
 title: first_try_landed_blog
-tagline: Reflections on stuff as it happens
 description: Reflections on stuff as it happens
-author: krlz
-email: cpumarfrohberg@example.com
-url: "https://cpumarfrohberg.github.io"
 baseurl: "/first_try_landed"
-github_username: cpumarfrohberg
+url: "https://cpumarfrohberg.github.io"
 
-# Build Settings
 theme: minima
+
 plugins:
   - jekyll-feed
   - jekyll-sitemap
   - jekyll-seo-tag
-
-# Defaults
-defaults:
-  - scope:
-      path: ""
-      type: posts
-    values:
-      layout: post
-      author_profile: true
-      read_time: true
-      comments: false
-      share: true
-      related: true
-
-# Navigation
-main:
-  - title: "Posts"
-    url: "/posts/"
-  - title: "Categories"
-    url: "/categories/"

@@ -1,0 +1,8 @@
+LICENSE
+README.md
+pyproject.toml
+LearnFP.egg-info/PKG-INFO
+LearnFP.egg-info/SOURCES.txt
+LearnFP.egg-info/dependency_links.txt
+LearnFP.egg-info/requires.txt
+LearnFP.egg-info/top_level.txt

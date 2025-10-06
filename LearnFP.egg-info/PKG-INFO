@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: LearnFP
+Version: 0.1.0
+Summary: Notes on getting fluent
+Author-email: krlz <cpumarfrohberg@gmail.com>
+License-Expression: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: python-dotenv==1.1.0
+Requires-Dist: pydantic>=2.6.1
+Requires-Dist: typer>=0.16.0
+Dynamic: license-file
+
+# Trigger build
+# Trigger build Mon Oct  6 00:12:32 CEST 2025

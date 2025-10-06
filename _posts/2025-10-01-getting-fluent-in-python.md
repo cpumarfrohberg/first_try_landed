@@ -36,6 +36,15 @@ Hence, objects integrate naturally with Python's syntax and built-ins: batteries
 To better appreciate the "batteries included"-aspect of implementing special methods, consider this example of the [zippa](https://pypi.org/project/zippa/) library:
 
 ```python
+class ZipItem(NamedTuple):
+    item_type: str
+    item_path: Path
+    arcname: str
+
+class ZipConfig(NamedTuple):
+    exclude_patterns: list[str]
+    include_dirs: bool = True
+
 class ZipManager:
     def __init__(self, config: ZipConfig):
         self.config = config

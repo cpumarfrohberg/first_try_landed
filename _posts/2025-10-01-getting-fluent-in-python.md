@@ -124,15 +124,22 @@ manager = ZipManager(config)
 
 # Rich behavior from special methods
 print(f"Manager: {manager}")  # Uses __str__
-print(f"Debug: {manager!r}")  # Uses __repr__
-print(f"Patterns: {len(manager)}")  # Uses __len__
-print(f"Excludes pyc: {'*.pyc' in manager}")  # Uses __contains__
-print(f"First pattern: {manager[0]}")  # Uses __getitem__
-print(f"Has exclusions: {bool(manager)}")  # Uses __bool__
+`Manager: ZipManager(exclude_patterns=[*.pyc, __pycache__], include_dirs=True)`
 
-# The actual work with lazy evaluation
-for message in manager.pack_items(['src/'], Path('output.zip'), 6):
-    print(message)  # Streams results as they're processed
+print(f"Debug: {manager!r}")  # Uses __repr__
+Debug: ZipManager(config=ZipConfig(exclude_patterns=['*.pyc', '__pycache__'], include_dirs=True))
+
+print(f"Has exclusions: {bool(manager)}")  # Uses __bool__
+`Has exclusions: True`
+
+print(f"Patterns: {len(manager)}")  # Uses __len__
+`Patterns: 2`
+
+print(f"Excludes pyc: {'*.pyc' in manager}")  # Uses __contains__
+Excludes pyc: True
+
+print(f"First pattern: {manager[0]}")  # Uses __getitem__
+`First pattern: *.pyc`
 ```
 
 ## How to use Special Methods

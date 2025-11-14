@@ -76,5 +76,3 @@ class MaterialInput(BaseModel):
 ```
 
 Pydantic validates at model creation, so invalid data never enters your business logic.
-
-You can see more of these maintainability patterns in the [project learnings](https://github.com/pybites/PDM_CarlosP/blob/main/wins.md).

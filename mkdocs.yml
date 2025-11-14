@@ -1,0 +1,54 @@
+site_name: first_try_landed_blog
+site_description: Reflections on stuff as it happens
+site_url: https://cpumarfrohberg.github.io/first_try_landed
+repo_url: https://github.com/cpumarfrohberg/first_try_landed
+repo_name: cpumarfrohberg/first_try_landed
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotate
+
+plugins:
+  - search
+
+nav:
+  - Blog: index.md
+  - Posts:
+    - 2025:
+      - Getting fluent in Python: posts/2025/getting-fluent-in-python.md
+      - "Building a Django app for the better good": posts/2025/planning-pads-recycling-django.md
+      - Understanding Python in simulating music: posts/2025/python-simulating-music.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true

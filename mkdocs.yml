@@ -39,6 +39,8 @@ nav:
       - Getting fluent in Python: posts/2025/getting-fluent-in-python.md
       - "Building a Django app for the better good": posts/2025/planning-pads-recycling-django.md
       - Understanding Python in simulating music: posts/2025/python-simulating-music.md
+    - 2026:
+      - What I learned about decorators: posts/2026/decorators.md
 
 markdown_extensions:
   - pymdownx.highlight:

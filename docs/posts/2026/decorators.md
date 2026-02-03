@@ -51,6 +51,7 @@ Same name. Same call. Different behavior.
 When you call:
 `simple("Carlos skates")`
 three things happen conceptually:
+
 * Python looks up the name simple
 * It finds a callable object
 * It calls it
@@ -80,8 +81,7 @@ The decorator decides:
 * how often
 * or not at all
 
-That’s why decorators are used for authentication, caching, logging, retries, and rate limiting.
-They’re gatekeepers.
+That’s why decorators are used for authentication, caching, logging, retries, validating and rate limiting. They’re gatekeepers.
 
 ### The @ Syntax Is Just Sugar
 This

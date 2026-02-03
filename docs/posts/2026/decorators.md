@@ -16,13 +16,11 @@ Yes, decorators technically work like this:
 But that description misses the point. Decorators don’t enhance functions. They intercept function calls.
 
 A decorator is less like a vitamin and more like the bouncer at Berlin’s KitKatClub deciding who gets in:
-“Single men? No. Groups? Hell yes.”
+“Single men? No. Mixed-gender groups? Hell yes!”
 
 Same door. Same people. Different outcome.
 
 ### A Minimal Example
-
-
 
 Think of a simple function returning a string as in
 ```{Python}
@@ -40,3 +38,69 @@ def decorated(fn):
         return fn(name.upper())
     return wrapper
 ```
+And suddenly:
+```{Python}
+>>> simple("Carlos skates")
+'CARLOS SKATES'
+```
+Same name. Same call. Different behavior.
+
+
+### What’s Actually Being Intercepted?
+
+When you call:
+`simple("Carlos skates")`
+three things happen conceptually:
+* Python looks up the name simple
+* It finds a callable object
+* It calls it
+
+A decorator intervenes by changing step 2.
+
+After decoration, simple no longer refers to the original function. It refers to the wrapper. The caller never knows.
+
+That’s interception.
+
+### You Never Reach the Original Directly
+
+After decoration, this is what you really have:
+
+`simple = decorated(simple)`
+
+Call flow:
+
+caller → wrapper → original function (maybe)
+
+
+The decorator decides:
+
+* whether the original function runs
+* when it runs
+* with what arguments
+* how often
+* or not at all
+
+That’s why decorators are used for authentication, caching, logging, retries, and rate limiting.
+They’re gatekeepers.
+
+### The @ Syntax Is Just Sugar
+This
+```{Python}
+@decorated
+def simple(name):
+    return name
+```
+Is exactly the same as:
+```{Python}
+def simple(name):
+    return name
+
+simple = decorated(simple)
+```
+Reassignment is the whole trick:
+* Callers don’t call behavior.
+* They call names.
+
+To intercept all calls, you must own the name.
+
+A decorator doesn’t enhance a function — it replaces it with a gatekeeper that controls every call that follows.

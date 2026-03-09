@@ -15,8 +15,8 @@ Yes, decorators technically work like this:
 `decorated = decorator(fn)`,
 But that description misses the point. Decorators don’t enhance functions. They intercept function calls.
 
-A decorator is less like a vitamin and more like the bouncer at Berlin’s KitKatClub deciding who gets in:
-“Single men? No. Mixed-gender groups? Hell yes!”
+A decorator is less like a vitamin and more like the bouncer at any infamous Berlin Club deciding who gets in:
+“Single men? No. Mixed-gender groups? Absolutely yes!”
 
 Same door. Same people. Different outcome.
 

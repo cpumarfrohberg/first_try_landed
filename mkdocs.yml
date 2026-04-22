@@ -41,6 +41,7 @@ nav:
       - Understanding Python in simulating music: posts/2025/python-simulating-music.md
     - 2026:
       - What I learned about decorators: posts/2026/decorators.md
+      - "Structured Output: Passport Control at Departure, Not Customs at Arrival": posts/2026/structured_output_and_contracts.md
 
 markdown_extensions:
   - pymdownx.highlight:

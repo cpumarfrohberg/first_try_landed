@@ -3,6 +3,11 @@ title: "Structured Output: Passport Control at Departure, Not Customs at Arrival
 date: 2026-04-22
 categories:
   - Python
+tags:
+  - python
+  - pydantic
+  - architecture
+  - ai-agents
 ---
 
 # Structured Output: Passport Control at Departure, Not Customs at Arrival

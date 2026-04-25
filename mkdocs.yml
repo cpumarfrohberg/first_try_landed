@@ -36,11 +36,14 @@ plugins:
       post_date_format: long
       archive: true
       categories: true
+  - tags:
+      tags_file: tags.md
 
 nav:
   - Home: index.md
   - Blog:
     - blog/index.md
+  - Tags: tags.md
 
 markdown_extensions:
   - pymdownx.highlight:

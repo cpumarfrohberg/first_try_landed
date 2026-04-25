@@ -3,6 +3,11 @@ title: "Building a Django app for the better good"
 date: 2025-11-15
 categories:
   - Web Development
+tags:
+  - django
+  - architecture
+  - pydantic
+  - maintainability
 ---
 
 # Building a Django app for the better good

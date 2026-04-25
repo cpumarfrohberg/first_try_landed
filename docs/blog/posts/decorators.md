@@ -3,6 +3,10 @@ title: "What I learned about decorators"
 date: 2026-02-01
 categories:
   - Python
+tags:
+  - python
+  - decorators
+  - function-design
 ---
 
 # Decorators Are Not Enhancements — They’re Interceptions

@@ -1,6 +1,6 @@
 ---
 title: "Understanding Python in simulating music"
-date: TBD
+date: 2025-12-01
 categories:
   - Python
   - Art

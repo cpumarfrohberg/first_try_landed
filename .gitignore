@@ -36,6 +36,10 @@
 ehthumbs.db
 Thumbs.db
 
+# MkDocs #
+##########
+site/
+
 # Python #
 ##########
 *.egg-info/

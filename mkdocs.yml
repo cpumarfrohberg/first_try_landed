@@ -31,17 +31,15 @@ theme:
 
 plugins:
   - search
+  - blog:
+      blog_dir: blog
+      post_date_format: long
+      archive: true
+      categories: true
 
 nav:
-  - Blog: index.md
-  - Posts:
-    - 2025:
-      - Getting fluent in Python: posts/2025/getting-fluent-in-python.md
-      - "Building a Django app for the better good": posts/2025/planning-pads-recycling-django.md
-      - Understanding Python in simulating music: posts/2025/python-simulating-music.md
-    - 2026:
-      - What I learned about decorators: posts/2026/decorators.md
-      - "Structured Output: Passport Control at Departure, Not Customs at Arrival": posts/2026/structured_output_and_contracts.md
+  - Home: index.md
+  - Blog: blog/index.md
 
 markdown_extensions:
   - pymdownx.highlight:

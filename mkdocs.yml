@@ -31,18 +31,19 @@ theme:
 
 plugins:
   - search
-  - blog:
-      blog_dir: blog
-      post_date_format: long
-      archive: true
-      categories: true
-      pagination: false
   - tags
 
 nav:
   - Home: index.md
   - Blog:
-    - blog/index.md
+    - Overview: blog/index.md
+    - 2026:
+      - "Structured Output: Passport Control at Departure, Not Customs at Arrival": blog/posts/structured_output_and_contracts.md
+      - What I learned about decorators: blog/posts/decorators.md
+    - 2025:
+      - Understanding Python in simulating music: blog/posts/python-simulating-music.md
+      - "Building a Django app for the better good": blog/posts/planning-pads-recycling-django.md
+      - "The Python Data Model: Why len(collection), Not collection.len()": blog/posts/getting-fluent-in-python.md
   - Tags: tags.md
 
 markdown_extensions:

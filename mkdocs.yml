@@ -36,8 +36,8 @@ plugins:
       post_date_format: long
       archive: true
       categories: true
-  - tags:
-      tags_file: tags.md
+      pagination: false
+  - tags
 
 nav:
   - Home: index.md

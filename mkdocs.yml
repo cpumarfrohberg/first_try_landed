@@ -39,7 +39,7 @@ nav:
     - Overview: blog/index.md
     - 2026:
       - "Structured Output: Passport Control at Departure, Not Customs at Arrival": blog/posts/structured_output_and_contracts.md
-      - What I learned about decorators: blog/posts/decorators.md
+      - "Decorators: The Bouncer Owns the Door, Not You": blog/posts/decorators.md
     - 2025:
       - Understanding Python in simulating music: blog/posts/python-simulating-music.md
       - "Building a Django app for the better good": blog/posts/planning-pads-recycling-django.md

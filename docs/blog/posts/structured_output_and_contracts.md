@@ -63,7 +63,7 @@ Agent(name="judge",              ..., output_type=JudgeEvaluation)
 Even the evaluator is constrained. The judge can't hand back a paragraph of opinions.
 It must produce `accuracy`, `completeness`, and `relevance` as floats, or it doesn't clear customs.
 
-Like an airport: every gate runs the same boarding pass scanner. It doesn't matter whether you're on a regional hop or a long-haul flight — the reader expects the same barcode.
+Every agent declares the same kind of contract. It doesn't matter whether it's the orchestrator, a sub-agent, or the judge — the reader expects the same structure.
 
 ### Nesting the Decision Inside the Response
 
@@ -86,9 +86,7 @@ class RoutingLog(BaseModel):
 It's a three-option constraint sent to the model at generation time.
 
 The model cannot route to a fourth destination that doesn't exist.
-The routing decision itself is a contract.
-
-Like an airport: the boarding pass doesn't just authorize travel — it records which gate, which tool, and the one-line reason for the rebooking. The routing trail is in the document, not in someone's memory.
+The routing decision itself is a contract — and the trail is in the document, not in someone's memory.
 
 ### The Service Layer Inherits the Guarantee
 
@@ -132,9 +130,7 @@ class SearchAgentResult(BaseModel):
     token_usage: TokenUsage
 ```
 
-The contract is only as strong as its weakest field.
-
-Like an airport: every passenger clears the full body scanner, but one bag gets waved through without X-ray. The terminal's guarantee is only as strong as that unchecked bag.
+The contract is only as strong as its weakest field — one untyped `list[dict]` is the unchecked bag.
 
 ### What Structured Output Does Not Fix
 

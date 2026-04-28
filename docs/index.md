@@ -6,4 +6,4 @@ This blog is where I try to make sense of ideas that seem easier to understand w
 
 I grew up skateboarding. In skating, a first-try land means mastery — no reps needed, just pure understanding. This blog is named after that. The writing is how I get there.
 
-Thanks to [Bob Belderbos](https://www.linkedin.com/in/bbelderbos/) — his mentorship shaped everything I think about writing Python that actually lasts — and to [Samuel McGuire](https://www.linkedin.com/in/samuel-mcguire/) for teaching Python in a way that makes you want to learn it.
+Thanks to [Bob Belderbos](https://www.linkedin.com/in/bbelderbos/) — his mentorship shaped everything I think about writing Python that actually lasts — and to [Samuel McGuire](https://www.linkedin.com/in/samuel-mcguire/) and [Carmine Somma](https://www.linkedin.com/in/carminesomma42/) for teaching Python in a way that makes you want to learn it.

@@ -1,6 +1,6 @@
 ---
 title: "The Python Data Model: Why len(collection), Not collection.len()"
-date: 2025-10-01
+date: 2026-04-27
 categories:
   - Python
 tags:
@@ -10,7 +10,7 @@ tags:
 
 # The Python Data Model: Why `len(collection)`, Not `collection.len()`
 
-**Date:** October 01, 2025
+**Date:** April 27, 2026
 
 I keep noticing things Python lets me do that I underuse in my own projects. This is the first of a few notes on those — written when the gap shows up in code I'm actually building, not in the abstract.
 

@@ -123,11 +123,7 @@ Like the club: `@decorated` is just posting the bouncer at the door before openi
 
 `simple = decorated(simple)` works because Python names are runtime bindings. Any code, at any point during execution, can rebind a name to a different object. The original function still exists in memory — it's just unreachable by that name.
 
-In compiled languages like Rust this is impossible. Variables in Rust are immutable by default — you have to explicitly declare one mutable with `mut`, and even then, function bindings are resolved at compile time. The compiler owns the name; no code can swap it out at runtime.
-
-Rust has something that looks similar: procedural macros like `#[tokio::main]` or `#[test]`. A marker on a function that changes its behavior — same syntax energy as `@decorator`. But the mechanism is completely different. Macros transform source code at compile time, before anything runs. There is no wrapper, no name swap, no bouncer posted at a door that already exists. The door is redesigned before the building opens.
-
-Python's decorator works because Python lets you own the name at runtime. That's the feature.
+Compiled languages consider this too risky to allow — variables are immutable by default, and function bindings are sealed at compile time. Python's position has always been different: we're all consenting adults here.
 
 ### Why This Matters
 

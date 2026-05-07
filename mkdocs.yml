@@ -32,11 +32,15 @@ theme:
 plugins:
   - search
 
+extra_javascript:
+  - https://unpkg.com/mermaid/dist/mermaid.min.js
+
 nav:
   - Home: index.md
   - Blog:
     - Overview: blog/index.md
     - 2026:
+      - "ContextVar: Getrennte Rechnung for Parallel Agent Runs": blog/posts/contextvars.md
       - "Structured Output: Passport Control at Departure, Not Customs at Arrival": blog/posts/structured_output_and_contracts.md
       - "The Python Data Model: Why len(collection), Not collection.len()": blog/posts/getting-fluent-in-python.md
       - "Decorators: The Bouncer Owns the Door, Not You": blog/posts/decorators.md
@@ -49,7 +53,11 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - admonition
   - pymdownx.details
   - attr_list

@@ -1,10 +1,10 @@
 # ContextVar: Getrennte Rechnung for Parallel Agent Runs
 
-The [structured output post](https://cpumarfrohberg.github.io/first_try_landed/blog/posts/structured_output_and_contracts/) left one thing unresolved: `list[dict]` in `SearchAgentResult` — an untyped field in an otherwise typed pipeline. That was one construction site in `user_behavior`. Bob found another one, and it was hiding behind code that looked correct.
+The [structured output post](https://cpumarfrohberg.github.io/first_try_landed/blog/posts/structured_output_and_contracts/) left one thing unresolved: `list[dict]` in `SearchAgentResult` — an untyped field in an otherwise typed pipeline. That shows up in typed pipelines sooner or later; here it was tucked inside a StackExchange QA agent prototype. Bob found another one, and it was hiding behind code that looked correct.
 
 ## The setup
 
-`user_behavior` routes natural-language questions to two sub-agents in parallel via `asyncio.gather` — a MongoDB/RAG agent and a Cypher agent. Each request has a budget of five tool calls. The budget lived in a shared module:
+The pipeline routes natural-language questions to two sub-agents in parallel via `asyncio.gather` — a MongoDB/RAG agent and a Cypher agent. Each request has a budget of five tool calls. The budget lived in a shared module:
 
 ```python
 _call_count = 0
@@ -122,7 +122,7 @@ A new tuple is created on every update. Nothing is mutated in place. Other conte
 
 ## Where you'll hit this in your own agent project
 
-The pattern is not specific to `user_behavior`. It appears whenever an agent pipeline tracks per-request state at module level. Concrete cases to check in your own codebase:
+The pattern isn’t tied to any one codebase. It appears whenever an agent pipeline tracks per-request state at module level. Concrete cases to check in your own codebase:
 
 - **Tool-call budgets** — any counter that resets at the start of a request and stops the agent when it hits a limit.
 - **Source or citation lists** — any list built up during a run and returned with the final answer.

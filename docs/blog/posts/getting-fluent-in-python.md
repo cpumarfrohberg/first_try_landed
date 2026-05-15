@@ -14,7 +14,7 @@ tags:
 
 I keep noticing things Python lets me do that I underuse in my own projects. This is the first of a few notes on those — written when the gap shows up in code I'm actually building, not in the abstract.
 
-This one comes from the [user_behavior project](structured_output_and_contracts.md) — the multi-agent system from the structured output post. The storage layer worked, but felt non-Pythonic. The fix was the data model.
+This one comes from the same multi-agent QA stack as the [structured output post](structured_output_and_contracts.md). The storage layer worked, but felt non-Pythonic. The fix was the data model.
 
 ## The tip of an iceberg: Python Data Model
 
@@ -30,7 +30,7 @@ Hence, objects integrate naturally with Python's syntax and built-ins: batteries
 
 ## Where I noticed I was leaving this on the table
 
-In `user_behavior`, I have a `MongoDBStorage` class that wraps a Mongo collection of StackExchange questions:
+I have a `MongoDBStorage` class that wraps a Mongo collection of StackExchange questions:
 
 ```python
 class MongoDBStorage:
@@ -106,7 +106,7 @@ The wrapper now actually wraps. The MongoDB API stays inside the class.
 
 ## Why this matters in a multi-agent project
 
-In `user_behavior`, multiple agents read from this storage layer. Every place that touched `storage.collection.<something>` was a place where the storage choice (MongoDB vs anything else) bled into the consumer. With the dunder methods, swapping MongoDB for, say, a local cache during tests becomes a one-class change — the agents only know they have something they can `len()`, `in`-check, and iterate over.
+Multiple agents read from this storage layer. Every place that touched `storage.collection.<something>` was a place where the storage choice (MongoDB vs anything else) bled into the consumer. With the dunder methods, swapping MongoDB for, say, a local cache during tests becomes a one-class change — the agents only know they have something they can `len()`, `in`-check, and iterate over.
 
 That's the contract idea from the [structured output post](structured_output_and_contracts.md), but applied at the object level instead of the data level: the model defines the protocol; the storage just has to fulfill it.
 

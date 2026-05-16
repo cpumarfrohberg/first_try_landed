@@ -34,11 +34,12 @@ A shared counter when you need separate ones.
 
 ## What broke
 
-Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every execution context. When `asyncio.gather` runs both agents in parallel, they create separate asyncio Tasks — but both Tasks share the same module-level `_call_count`. The result is a **race condition** with three concrete failures:
+Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every execution context. When `asyncio.gather` runs both agents in parallel, they create separate asyncio Tasks — but both Tasks share the same module-level `_call_count`. The result is a **race condition** with two concrete failures:
 
-1. **Counter reset mid-execution.** One agent calls `reset()` while the other is mid-run. The running agent's counter gets zeroed — it might have made 3 calls already, but suddenly the counter reads 0.
-2. **Shared increments.** Both agents increment the same `_call_count` concurrently, hitting the five-call limit after only 2-3 actual calls each.
-3. **Source list leak.** `_sources` accumulates entries from both agents — each agent sees sources from the other's searches.
+1. **Shared increments.** Both agents increment the same `_call_count` concurrently, hitting the five-call limit after only 2-3 actual calls each.
+2. **Source list leak.** `_sources` accumulates entries from both agents — each agent sees sources from the other's searches.
+
+There's a third failure mode — a later-arriving `reset()` zeroing a running agent's counter — but it requires staggered start times (e.g. a second user's request landing mid-flight). The two above are guaranteed every time `asyncio.gather` runs the agents.
 
 `threading.Lock` made each write atomic — **thread safety** at the operation level, no corrupted increments. It didn't provide **request isolation** — separate state per agent run.
 

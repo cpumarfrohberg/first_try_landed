@@ -173,4 +173,4 @@ If tools access the budget from many places, that's significant refactoring. `Co
 
 ---
 
-Primary sources: [PEP 567](https://peps.python.org/pep-0567/) introduced `contextvars` in Python 3.7. Reference: [docs.python.org/3/library/contextvars](https://docs.python.org/3/library/contextvars.html). Concurrency terminology from [Learn concurrency - a deep dive into multithreading with Python](https://blog.geekuni.com/2026/04/python-concurrency.html).
+Primary sources: [PEP 567](https://peps.python.org/pep-0567/) introduced `contextvars` in Python 3.7. Reference: [docs.python.org/3/library/contextvars](https://docs.python.org/3/library/contextvars.html). Concurrency terminology from Chapter 19 "Concurrency Models in Python" in *Fluent Python* (2nd ed.) by Luciano Ramalho.

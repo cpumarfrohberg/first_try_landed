@@ -38,11 +38,13 @@ That's the basic problem: a shared counter when you need separate ones.
 
 Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every execution context. When `asyncio.gather` runs both agents in parallel, they create separate asyncio Tasks — but both Tasks share the same module-level `_call_count`.
 
-This creates a **race condition** — the outcome depends on unpredictable timing. Three concrete failures:
+This creates a **race condition** — the outcome depends on unpredictable timing. Two concrete failures:
 
-1. One agent calls `reset()` while another is mid-execution — the running agent's counter gets zeroed, corrupting its state.
-2. Both agents increment the same `_call_count` during concurrent execution, hitting the five-call limit after only 2-3 actual calls each.
-3. The `_sources` list accumulates entries from both agents — a data leak.
+1. **Counter reset mid-execution**: One agent calls `reset()` while the other is running. The running agent's counter gets zeroed, corrupting its state. It might have made 3 calls already, but suddenly the counter reads 0.
+
+2. **Shared counter increments**: Both agents increment the same `_call_count` during concurrent execution. They hit the five-call limit after only 2-3 actual calls each (see diagram below).
+
+Additionally, the `_sources` list accumulates entries from both agents — a data leak where each agent sees sources from the other's searches.
 
 `threading.Lock` made each write atomic (preventing memory corruption), but it didn't create per-request isolation. The lock ensures **thread safety** at the operation level — no corrupted increments. It doesn't provide **request isolation** — separate state per agent run.
 
@@ -63,13 +65,20 @@ When agents got cut off early, they synthesized answers from incomplete data. Th
 
 ## The race (one example run)
 
-```mermaid
-flowchart LR
-    A[MongoDB agent: 2 of 5 calls made] --> B[sources: 2 own\n+ 2 from Cypher agent]
-    C[Cypher agent: 3 of 5 calls made\ncut off early] --> D[sources: 3 own\n+ 2 from MongoDB agent]
+```
+Shared counter starts at 0, limit is 5:
+
+MongoDB call 1:  counter 0→1  ✓
+Cypher call 1:   counter 1→2  ✓
+MongoDB call 2:  counter 2→3  ✓
+Cypher call 2:   counter 3→4  ✓
+Cypher call 3:   counter 4→5  ✓ (limit reached)
+MongoDB call 3:  ✗ BLOCKED (limit already hit)
+
+Result: MongoDB made 2/5 calls, Cypher made 3/5 calls
 ```
 
-Next run with the same question: MongoDB might complete all 5 calls, Cypher might get cut off at 2. Completely unpredictable.
+Next run: completely different distribution. One agent might complete all 5 calls while the other gets 0.
 
 ## The fix: `contextvars.ContextVar`
 
@@ -102,10 +111,11 @@ def _add_source(source: str) -> None:
 
 After the fix:
 
-```mermaid
-flowchart LR
-    A[MongoDB agent: 5 of 5 calls made] --> B[sources: 5 own\n0 foreign]
-    C[Cypher agent: 5 of 5 calls made] --> D[sources: 5 own\n0 foreign]
+```
+Each agent has its own counter (isolated via ContextVar):
+
+MongoDB: counter 0→1→2→3→4→5  ✓ (completed all 5 calls)
+Cypher:  counter 0→1→2→3→4→5  ✓ (completed all 5 calls)
 ```
 
 *Getrennte Rechnung*: each agent tracks its own count. No shared tally. No budget theft.

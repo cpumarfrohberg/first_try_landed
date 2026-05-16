@@ -127,14 +127,13 @@ This bug appears when three conditions meet: module-level per-request state, con
 - **Orchestrators using `asyncio.gather`** — running sub-agents in parallel on the same singleton instances
 - **Web frameworks** — Streamlit, FastAPI, or Gradio where each session/request runs on its own thread
 
-**You're safe if:**
+**You're safe if you avoid module-level state entirely:**
 
-- You create new agent instances per request (no shared state)
-- You pass state explicitly through function parameters or dependency injection
-- You run agents sequentially, one at a time
-- Your state lives in request-scoped objects, not module globals
+- Pass state explicitly through function parameters or dependency injection
+- Store state in request-scoped objects (FastAPI dependencies, Streamlit session_state)
+- Use `ContextVar` for singleton agents that need per-request isolation
 
-The bug needs all three: module globals + concurrency + reused instances. If your architecture avoids module-level state, you don't have this problem — whether or not you use `ContextVar`.
+Creating new agent instances per request would also work, but initialization is expensive (model loading, connections, prompt compilation). That's why most architectures use singleton agents — which is exactly when `ContextVar` becomes necessary.
 
 ## What this doesn't fix
 

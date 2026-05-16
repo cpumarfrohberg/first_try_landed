@@ -48,19 +48,10 @@ The lock is the rule that only one person signals the waiter at a time. It preve
 
 ## The race
 
-```
-userA call 1 [count: 1]
-→ userB call 1 [count: 2]
-→ userA call 2 [count: 3]
-→ userB call 2 [count: 4]
-→ userA call 3 [count: 5 — MAX reached]
-→ userB call 3 → ToolCallLimitExceeded (userB made 2 calls)
-```
-
 ```mermaid
 flowchart LR
-    A[userA: 2 of 4 calls made] --> B[sources: own q0, q1\n+ foreign userB:q0, userB:q1]
-    C[userB: 3 of 4 calls made\ncut off] --> D[sources: own q0, q1, q2\n+ foreign userA:q0, userA:q1]
+    A[userA: 2 of 4 calls made] --> B[sources: 2 own\n+ 2 foreign from userB]
+    C[userB: 3 of 4 calls made\ncut off early] --> D[sources: 3 own\n+ 2 foreign from userA]
 ```
 
 ## The fix: `contextvars.ContextVar`

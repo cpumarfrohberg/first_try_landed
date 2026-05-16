@@ -30,7 +30,7 @@ def _check_and_increment() -> int:
 
 Locally: no issues. Under concurrent load: three failures at once.
 
-In Germany, you can ask for *Getrennte Rechnung* — separate checks. Each person's tab is tracked independently. Everywhere else, restaurants often default to one shared bill for the table. That works fine until you and a friend both agree to cap yourselves at five drinks (which in Berlin counts as showing restraint), but the waiter keeps one shared tally. By your third drink, the count reads five — your friend already ordered two. You stop. You've only had three. At the end of the night, the receipt shows 15 drinks across everyone at the table with no way to tell who had which.
+In Germany, you can ask for *Getrennte Rechnung* — separate checks. Each person's tab is tracked independently. Elsewhere, it's more probable that restaurants default to one shared bill for the table. That works fine until you and a friend both agree to cap yourselves at five drinks (which in Berlin counts as showing restraint), but the waiter keeps one shared tally. By your third drink, the count reads five — your friend already ordered two. You stop. You've only had three. At the end of the night, the receipt shows 15 drinks across everyone at the table with no way to tell who had which.
 
 ## What broke
 
@@ -117,23 +117,23 @@ A new tuple is created on every update. Nothing is mutated in place. Other conte
 
 ## Where you might hit this
 
-This bug appears when three conditions meet: module-level per-request state, concurrent execution, and singleton agents. If you're missing any of these, you won't hit it.
+This bug appears when three conditions meet: module-level per-request state, concurrent execution, and reused agent instances. If you're missing any of these, you won't hit it.
 
 **You're at risk if:**
 
 - **Tool-call budgets** — tracked in module-level counters that reset at request start
 - **Source or citation lists** — accumulated at module scope during a run
 - **Rate limiting per request** — token counts, API call counters, cost accumulators stored as module variables
-- **Orchestrators using `asyncio.gather`** — running sub-agents in parallel on the same singleton instances
+- **Orchestrators using `asyncio.gather`** — running sub-agents in parallel on the same shared agent instances
 - **Web frameworks** — Streamlit, FastAPI, or Gradio where each session/request runs on its own thread
 
 **You're safe if you avoid module-level state entirely:**
 
 - Pass state explicitly through function parameters or dependency injection
 - Store state in request-scoped objects (FastAPI dependencies, Streamlit session_state)
-- Use `ContextVar` for singleton agents that need per-request isolation
+- Use `ContextVar` for shared agent instances that need per-request isolation
 
-Creating new agent instances per request would also work, but initialization is expensive (model loading, connections, prompt compilation). That's why most architectures use singleton agents — which is exactly when `ContextVar` becomes necessary.
+Creating new agent instances per request would also work, but initialization is expensive (model loading, connections, prompt compilation). That's why most architectures reuse agent instances — which is exactly when `ContextVar` becomes necessary.
 
 ## What this doesn't fix
 
@@ -166,7 +166,7 @@ async def query(self, question: str, budget: ToolCallBudget):
     await some_tool(question, budget)  # now every tool signature changes
 ```
 
-If tools access the budget from many places, that's significant refactoring. `ContextVar` is appropriate here because the state is request-scoped but the agent is singleton-scoped. It's not a workaround; it's the right model for implicit per-request context in a shared-instance architecture.
+If tools access the budget from many places, that's significant refactoring. `ContextVar` is appropriate here because the state is request-scoped but the agent instance is reused across requests. It's not a workaround; it's the right model for implicit per-request context in a shared-instance architecture.
 
 *Getrennte Rechnung* is the right model when the waiter (agent) serves many tables (requests) — you need per-table isolation, not a separate waiter for each table.
 

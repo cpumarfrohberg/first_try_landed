@@ -125,9 +125,9 @@ This bug appears when three conditions meet: module-level per-request state, con
 
 Creating new agent instances per request would also work, but initialization is expensive (model loading, connections, prompt compilation). That's why most architectures reuse agent instances — which is exactly when `ContextVar` becomes necessary.
 
-## What this doesn't fix
+## Why not just use a class?
 
-`ContextVar` isolates per-task state. It doesn't address module-level globals. Why not move the budget into a class?
+`ContextVar` fixes the race, but it still relies on module-level declarations. The natural follow-up is: why have module state at all? Why not move the budget into a class?
 
 ```python
 class ToolCallBudget:

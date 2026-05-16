@@ -1,6 +1,6 @@
 # ContextVar: Getrennte Rechnung for Parallel Agent Runs
 
-Bob Belderbos recently wrote about [a race condition Rust wouldn't let you write](https://belderbos.dev/blog/race-condition-rust-wouldnt-let-me-write/) — a tool-call counter shared between parallel agents in a Python service. He walked through how Rust's compiler would have blocked the bug at four different points. This is the Python side: what the bug looked like in production, how `contextvars.ContextVar` fixed it, and where you'll hit the same pattern in your own multi-agent orchestrators.
+Bob Belderbos recently wrote about [a race condition Rust wouldn't let you write](https://belderbos.dev/blog/race-condition-rust-wouldnt-let-me-write/) — a tool-call counter shared between parallel agents in my multi-agent project. He walked through how Rust's compiler would have blocked the bug at four different points. This is the Python side: how `contextvars.ContextVar` fixed it, and where you'll hit the same pattern in your own multi-agent orchestrators.
 
 The bug appeared when an orchestrator called both agents — MongoDB for text search and Cypher for graph queries — in parallel via `asyncio.gather`. Testing agents individually: no issues. Running both in parallel: agents hit their five-call limit after two or three actual calls because they consumed each other's budgets from a shared counter.
 

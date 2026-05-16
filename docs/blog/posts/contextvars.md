@@ -1,10 +1,12 @@
 # ContextVar: Getrennte Rechnung for Parallel Agent Runs
 
-The [structured output post](https://cpumarfrohberg.github.io/first_try_landed/blog/posts/structured_output_and_contracts/) left one thing unresolved: `list[dict]` in `SearchAgentResult` — an untyped field in an otherwise typed pipeline. That shows up in typed pipelines sooner or later; here it was tucked inside a StackExchange QA agent prototype. Bob found another one, and it was hiding behind code that looked correct.
+Bob Belderbos recently wrote about [a race condition Rust wouldn't let you write](https://belderbos.dev/blog/race-condition-rust-wouldnt-let-me-write/) — a tool-call counter shared between parallel agents in a Python service. He walked through how Rust's compiler would have blocked the bug at four different points. This is the Python side: what the bug looked like in production, how `contextvars.ContextVar` fixed it, and where you'll hit the same pattern in your own agent pipelines.
+
+The bug appeared when an orchestrator called both agents — MongoDB for text search and Cypher for graph queries — in parallel via `asyncio.gather`. Testing agents individually: no issues. Running both in parallel: agents hit their five-call limit after two or three actual calls because they consumed each other's budgets from a shared counter.
 
 ## The setup
 
-The pipeline routes natural-language questions to two sub-agents in parallel via `asyncio.gather` — a MongoDB/RAG agent and a Cypher agent. Each request has a budget of five tool calls. The budget lived in a shared module:
+The pipeline routes natural-language (NL) questions to two sub-agents in parallel via `asyncio.gather` — a MongoDB/RAG agent (text-searching in named DB) and a Cypher agent (translating NL into cypher queries for retrieving data from a graph DB). Each request has a budget of five tool calls. The budget lived in a shared module:
 
 ```python
 _call_count = 0
@@ -28,7 +30,7 @@ def _check_and_increment() -> int:
 
 Locally: no issues. Under concurrent load: three failures at once.
 
-Outside Germany, going out with a friend typically means one bill for the table — regardless of what each person ordered. That works fine until you both agreed to cap yourselves at five drinks, but the waiter keeps one shared tally. By your third drink the tally already reads five, because your friend's drinks are on the same count. You stop ordering. You've only had three. And at the end of the night, the receipt shows 15 drinks between all of the people sitting at the same table with no way to tell who had which.
+In Germany, you can ask for *Getrennte Rechnung* — separate checks. Each person's tab is tracked independently. Everywhere else, restaurants often default to one shared bill for the table. That works fine until you and a friend both agree to cap yourselves at five drinks (which in Berlin counts as showing restraint), but the waiter keeps one shared tally. By your third drink, the count reads five — your friend already ordered two. You stop. You've only had three. At the end of the night, the receipt shows 15 drinks across everyone at the table with no way to tell who had which.
 
 ## What broke
 
@@ -102,9 +104,11 @@ flowchart LR
 
 ## Why not `threading.local`?
 
-`threading.local` gives isolation per OS thread — that would have separated the two Streamlit users. But all asyncio Tasks run on the same OS thread. Two parallel agents within one user's request still share a `threading.local` value.
+`threading.local` gives isolation per OS thread — that would have separated the two Streamlit users. But **all asyncio Tasks run on the same OS thread**. When `asyncio.gather` runs both agents in parallel, they're separate Tasks on a single thread. Two parallel agents within one user's request still share a `threading.local` value.
 
-If `threading.local` were enough, a single user running both agents in parallel would be safe. The reproduction shows it isn't — the race happens within one request, not just across users.
+This is the key distinction: `asyncio.gather` creates separate execution contexts (Tasks) without creating separate threads. `threading.local` can't distinguish between them.
+
+If `threading.local` were enough, a single user running both agents in parallel would be safe. The reproduction shows it isn't — the race happens within one request via `asyncio.gather`, not just across users.
 
 Moving to separate tables at the same restaurant doesn't help if the waiter still keeps one tally for the whole floor.
 
@@ -135,9 +139,38 @@ If your agent has any of these and the state lives at module scope, the bug is t
 
 ## What this doesn't fix
 
-`ContextVar` isolates per-task state. It doesn't address the design issue the bug exposed: tool-call tracking as module-level globals is fragile regardless of the isolation mechanism. The next step is to move the budget into an explicit object passed to each agent at construction — state that lives where it belongs, not at module scope.
+`ContextVar` isolates per-task state. It doesn't address module-level globals. Why not move the budget into a class?
 
-*Getrennte Rechnung* means each person tracks their own tab. It doesn't mean the restaurant has a working point-of-sale system.
+```python
+class ToolCallBudget:
+    def __init__(self, max_calls: int = 5):
+        self.count = 0
+        self.sources: list[str] = []
+
+    def check_and_increment(self) -> int:
+        if self.count >= self.max_calls:
+            raise ToolCallLimitExceeded()
+        self.count += 1
+        return self.count
+```
+
+That works if you create a new agent per request:
+
+```python
+agent = MongoDBSearchAgent(budget=ToolCallBudget())
+result = await agent.query(question)
+```
+
+But most agent architectures reuse the same agent instance across requests — initialization is expensive (model loading, connections, prompt compilation). The budget is per-request, not per-agent-instance. You'd need to thread it through every `query()` call and every tool:
+
+```python
+async def query(self, question: str, budget: ToolCallBudget):
+    await some_tool(question, budget)  # now every tool signature changes
+```
+
+If tools access the budget from many places, that's significant refactoring. `ContextVar` is appropriate here because the state is request-scoped but the agent is singleton-scoped. It's not a workaround; it's the right model for implicit per-request context in a shared-instance architecture.
+
+*Getrennte Rechnung* is the right model when the waiter (agent) serves many tables (requests) — you need per-table isolation, not a separate waiter for each table.
 
 ---
 

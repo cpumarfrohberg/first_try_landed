@@ -36,13 +36,13 @@ In Germany, you can ask for *Getrennte Rechnung* — separate checks. Each perso
 
 Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every thread in the process. Streamlit puts each user session on its own OS thread. Two simultaneous users share that integer.
 
-Three failures:
+This creates a **race condition** — the outcome depends on unpredictable timing. Three failures result:
 
 1. Each agent called `reset_tool_call_count()` at startup, zeroing a counter the other agent had already incremented.
 2. Both agents incremented the same `_call_count`, consuming each other's budgets.
 3. `get_sources()` returned a mix of both users' source IDs — a data leak.
 
-`threading.Lock` made each write atomic. It did not create per-request state.
+`threading.Lock` made each write atomic (preventing memory corruption), but it didn't create per-request isolation. The lock ensures **thread safety** at the operation level — no corrupted increments. It doesn't provide **request isolation** — separate state per agent run.
 
 The lock is the rule that only one person signals the waiter at a time. It prevents two people ordering in the same instant. The tally is still shared. Your self-imposed limit is still being eaten by someone else's count.
 
@@ -95,7 +95,7 @@ flowchart LR
 
 ## Why not `threading.local`?
 
-`threading.local` gives isolation per OS thread — that would have separated the two Streamlit users. But **all asyncio Tasks run on the same OS thread**. When `asyncio.gather` runs both agents in parallel, they're separate Tasks on a single thread. Two parallel agents within one user's request still share a `threading.local` value.
+`threading.local` gives isolation per OS thread — that would have separated the two Streamlit users. But **all asyncio Tasks run on the same OS thread**. When `asyncio.gather` runs both agents, they execute **concurrently** (interleaved by the event loop during I/O waits), not in **parallel** (simultaneously on separate CPU cores). Two agents within one request still share a `threading.local` value because they share the same OS thread.
 
 This is the key distinction: `asyncio.gather` creates separate execution contexts (Tasks) without creating separate threads. `threading.local` can't distinguish between them.
 
@@ -173,4 +173,4 @@ If tools access the budget from many places, that's significant refactoring. `Co
 
 ---
 
-Primary sources: [PEP 567](https://peps.python.org/pep-0567/) introduced `contextvars` in Python 3.7. Reference: [docs.python.org/3/library/contextvars](https://docs.python.org/3/library/contextvars.html).
+Primary sources: [PEP 567](https://peps.python.org/pep-0567/) introduced `contextvars` in Python 3.7. Reference: [docs.python.org/3/library/contextvars](https://docs.python.org/3/library/contextvars.html). Concurrency terminology from [Learn concurrency - a deep dive into multithreading with Python](https://blog.geekuni.com/2026/04/python-concurrency.html).

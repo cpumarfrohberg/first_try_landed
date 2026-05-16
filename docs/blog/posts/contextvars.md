@@ -2,11 +2,9 @@
 
 Bob Belderbos recently wrote about [a race condition Rust wouldn't let you write](https://belderbos.dev/blog/race-condition-rust-wouldnt-let-me-write/) — a tool-call counter shared between parallel agents in my multi-agent project. He walked through how Rust's compiler would have blocked the bug at four different points. This is the Python side: how `contextvars.ContextVar` fixed it, and where you'll hit the same pattern in your own multi-agent orchestrators.
 
-The bug appeared when an orchestrator called both agents — MongoDB for text search and Cypher for graph queries — in parallel via `asyncio.gather`. Testing agents individually: no issues. Running both in parallel: agents hit their five-call limit after two or three actual calls because they consumed each other's budgets from a shared counter.
-
 ## The setup
 
-An orchestrator agent routes natural-language questions to specialized sub-agents in parallel via `asyncio.gather` — a MongoDB agent for text search and a Cypher agent for graph queries. Each sub-agent has a budget of five tool calls. The budget lived in a shared module:
+An orchestrator routes natural-language questions to specialized sub-agents in parallel via `asyncio.gather` — a MongoDB agent for text search and a Cypher agent for graph queries. Each sub-agent should have a budget of five tool calls. Both agents imported the same tracking module:
 
 ```python
 _call_count = 0
@@ -28,42 +26,23 @@ def _check_and_increment() -> int:
         return _call_count
 ```
 
-Locally: no issues. Under concurrent load: three failures at once.
+Each agent calls `reset()` at startup and `_check_and_increment()` before each tool call. Both agents share these functions and variables.
 
 In Germany, you can ask for *Getrennte Rechnung* — separate checks. Each person's tab is tracked independently. Elsewhere, restaurants often default to one shared bill for the table. That works fine until you and a friend both agree to cap yourselves at five drinks (which in Berlin counts as showing restraint), but the waiter keeps one shared tally. By your third drink, the count reads five — your friend already ordered two. You stop. You've only had three.
 
-That's the basic problem: a shared counter when you need separate ones.
+A shared counter when you need separate ones.
 
 ## What broke
 
-Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every execution context. When `asyncio.gather` runs both agents in parallel, they create separate asyncio Tasks — but both Tasks share the same module-level `_call_count`.
+Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every execution context. When `asyncio.gather` runs both agents in parallel, they create separate asyncio Tasks — but both Tasks share the same module-level `_call_count`. The result is a **race condition** with three concrete failures:
 
-This creates a **race condition** — the outcome depends on unpredictable timing. Two concrete failures:
+1. **Counter reset mid-execution.** One agent calls `reset()` while the other is mid-run. The running agent's counter gets zeroed — it might have made 3 calls already, but suddenly the counter reads 0.
+2. **Shared increments.** Both agents increment the same `_call_count` concurrently, hitting the five-call limit after only 2-3 actual calls each.
+3. **Source list leak.** `_sources` accumulates entries from both agents — each agent sees sources from the other's searches.
 
-1. **Counter reset mid-execution**: One agent calls `reset()` while the other is running. The running agent's counter gets zeroed, corrupting its state. It might have made 3 calls already, but suddenly the counter reads 0.
+`threading.Lock` made each write atomic — **thread safety** at the operation level, no corrupted increments. It didn't provide **request isolation** — separate state per agent run.
 
-2. **Shared counter increments**: Both agents increment the same `_call_count` during concurrent execution. They hit the five-call limit after only 2-3 actual calls each (see diagram below).
-
-Additionally, the `_sources` list accumulates entries from both agents — a data leak where each agent sees sources from the other's searches.
-
-`threading.Lock` made each write atomic (preventing memory corruption), but it didn't create per-request isolation. The lock ensures **thread safety** at the operation level — no corrupted increments. It doesn't provide **request isolation** — separate state per agent run.
-
-## The real cost
-
-The race condition made behavior non-deterministic. Within a single orchestrator run, the shared counter would:
-
-- Get reset by one agent while the other was mid-execution
-- Increment from both agents simultaneously
-- Sometimes let an agent complete all 5 searches
-- Sometimes cut an agent off at 2-3 searches
-
-The logs showed the counter jumping: 0 → 2 → 0 (reset) → 3 → 5 (limit hit). One agent would log "made 2 calls" while believing it had budget remaining. The other would log "made 3 calls" and hit the limit.
-
-When agents got cut off early, they synthesized answers from incomplete data. The orchestrator still returned a response — it just couldn't be trusted. Same question, different answer quality depending on race timing.
-
-**The cost:** Non-deterministic agent behavior in production. No retries needed — the system "worked" — but answer quality varied unpredictably based on execution timing.
-
-## The race (one example run)
+## The race, in one example run
 
 ```
 Shared counter starts at 0, limit is 5:
@@ -73,12 +52,12 @@ Cypher call 1:   counter 1→2  ✓
 MongoDB call 2:  counter 2→3  ✓
 Cypher call 2:   counter 3→4  ✓
 Cypher call 3:   counter 4→5  ✓ (limit reached)
-MongoDB call 3:  ✗ BLOCKED (limit already hit)
+MongoDB call 3:  ✗ BLOCKED
 
 Result: MongoDB made 2/5 calls, Cypher made 3/5 calls
 ```
 
-Next run: completely different distribution. One agent might complete all 5 calls while the other gets 0.
+Next run: completely different distribution. One agent might complete all 5 calls while the other gets cut off at 1. The orchestrator still returns a response — it just synthesizes from incomplete data, and you can't tell which run produced which quality. Same question, different answer.
 
 ## The fix: `contextvars.ContextVar`
 
@@ -109,38 +88,22 @@ def _add_source(source: str) -> None:
     _sources.set(_sources.get() + (source,))
 ```
 
+Note the tuple. `ContextVar("sources", default=[])` looks safe but isn't — every context that hasn't called `.set()` shares the same default list object, and a stray `.append()` mutates it for every other context. Same leak in a different form. With a tuple, every update creates a new object via `.set()`, so writes are explicit and contexts stay isolated. Use immutable defaults — `()` or `None`.
+
 After the fix:
 
 ```
-Each agent has its own counter (isolated via ContextVar):
+Each agent has its own counter, isolated via ContextVar:
 
-MongoDB: counter 0→1→2→3→4→5  ✓ (completed all 5 calls)
-Cypher:  counter 0→1→2→3→4→5  ✓ (completed all 5 calls)
+MongoDB: counter 0→1→2→3→4→5  ✓
+Cypher:  counter 0→1→2→3→4→5  ✓
 ```
 
-*Getrennte Rechnung*: each agent tracks its own count. No shared tally. No budget theft.
+*Getrennte Rechnung*: each agent tracks its own count.
 
 ## Why not `threading.local`?
 
-`threading.local` gives isolation per OS thread — that would work for separating different user sessions. But **all asyncio Tasks run on the same OS thread**. When `asyncio.gather` runs both agents, they execute **concurrently** (interleaved by the event loop during I/O waits), not in **parallel** (simultaneously on separate CPU cores). Two agents within one request still share a `threading.local` value because they share the same OS thread.
-
-This is the key distinction: `asyncio.gather` creates separate execution contexts (Tasks) without creating separate threads. `threading.local` can't distinguish between them.
-
-If `threading.local` were enough, a single user running both agents in parallel would be safe. The reproduction shows it isn't — the race happens within one request via `asyncio.gather`, not just across users.
-
-Moving to separate tables at the same restaurant doesn't help if the waiter still keeps one tally for the whole floor.
-
-## One detail: the mutable default
-
-`ContextVar("sources", default=[])` looks safe. It isn't. Every context that hasn't called `.set()` shares the same default list object. A stray `.append()` mutates it for every other context — the same leak in a different form.
-
-`_sources` uses a tuple:
-
-```python
-_sources.set(_sources.get() + (source,))
-```
-
-A new tuple is created on every update. Nothing is mutated in place. Other contexts are unaffected. Use an immutable default — `()` or `None`. Mutation then requires an explicit `.set()`, which makes the write visible.
+`threading.local` gives isolation per OS thread. But all asyncio Tasks run on the same OS thread — `asyncio.gather` creates separate execution contexts (Tasks) without creating separate threads. Two parallel agents within one request still share a `threading.local` value because they share the thread. The race happens within one request via `asyncio.gather`, not just across users.
 
 ## Where you might hit this
 
@@ -186,16 +149,14 @@ agent = MongoDBSearchAgent(budget=ToolCallBudget())
 result = await agent.query(question)
 ```
 
-But most agent architectures reuse the same agent instance across requests — initialization is expensive (model loading, connections, prompt compilation). The budget is per-request, not per-agent-instance. You'd need to thread it through every `query()` call and every tool:
+But most agent architectures reuse the same agent instance across requests (initialization is expensive). The budget is per-request, not per-agent-instance. You'd need to thread it through every `query()` call and every tool:
 
 ```python
 async def query(self, question: str, budget: ToolCallBudget):
     await some_tool(question, budget)  # now every tool signature changes
 ```
 
-If tools access the budget from many places, that's significant refactoring. `ContextVar` is appropriate here because the state is request-scoped but the agent instance is reused across requests. It's not a workaround; it's the right model for implicit per-request context in a shared-instance architecture.
-
-*Getrennte Rechnung* is the right model when the waiter (agent) serves many tables (requests) — you need per-table isolation, not a separate waiter for each table.
+If tools access the budget from many places, that's significant refactoring. `ContextVar` is appropriate here because the state is request-scoped but the agent instance is reused. It's not a workaround; it's the right model for implicit per-request context in a shared-instance architecture.
 
 ---
 

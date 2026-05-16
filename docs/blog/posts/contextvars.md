@@ -30,29 +30,46 @@ def _check_and_increment() -> int:
 
 Locally: no issues. Under concurrent load: three failures at once.
 
-In Germany, you can ask for *Getrennte Rechnung* — separate checks. Each person's tab is tracked independently. Elsewhere, it's more probable that restaurants default to one shared bill for the table. That works fine until you and a friend both agree to cap yourselves at five drinks (which in Berlin counts as showing restraint), but the waiter keeps one shared tally. By your third drink, the count reads five — your friend already ordered two. You stop. You've only had three. At the end of the night, the receipt shows 15 drinks across everyone at the table with no way to tell who had which.
+In Germany, you can ask for *Getrennte Rechnung* — separate checks. Each person's tab is tracked independently. Elsewhere, restaurants often default to one shared bill for the table. That works fine until you and a friend both agree to cap yourselves at five drinks (which in Berlin counts as showing restraint), but the waiter keeps one shared tally. By your third drink, the count reads five — your friend already ordered two. You stop. You've only had three.
+
+That's the basic problem: a shared counter when you need separate ones.
 
 ## What broke
 
 Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every execution context. When `asyncio.gather` runs both agents in parallel, they create separate asyncio Tasks — but both Tasks share the same module-level `_call_count`.
 
-This creates a **race condition** — the outcome depends on unpredictable timing. Three failures result:
+This creates a **race condition** — the outcome depends on unpredictable timing. Three concrete failures:
 
-1. Each agent called `reset_tool_call_count()` at startup, zeroing a counter the other agent had already incremented.
-2. Both agents incremented the same `_call_count`, consuming each other's budgets.
-3. `get_sources()` returned a mix of both agents' source IDs — a data leak.
+1. One agent calls `reset()` while another is mid-execution — the running agent's counter gets zeroed, corrupting its state.
+2. Both agents increment the same `_call_count` during concurrent execution, hitting the five-call limit after only 2-3 actual calls each.
+3. The `_sources` list accumulates entries from both agents — a data leak.
 
 `threading.Lock` made each write atomic (preventing memory corruption), but it didn't create per-request isolation. The lock ensures **thread safety** at the operation level — no corrupted increments. It doesn't provide **request isolation** — separate state per agent run.
 
-The lock is the rule that only one person signals the waiter at a time. It prevents two people ordering in the same instant. The tally is still shared. Your self-imposed limit is still being eaten by someone else's count.
+## The real cost
 
-## The race
+The race condition made behavior non-deterministic. Within a single orchestrator run, the shared counter would:
+
+- Get reset by one agent while the other was mid-execution
+- Increment from both agents simultaneously
+- Sometimes let an agent complete all 5 searches
+- Sometimes cut an agent off at 2-3 searches
+
+The logs showed the counter jumping: 0 → 2 → 0 (reset) → 3 → 5 (limit hit). One agent would log "made 2 calls" while believing it had budget remaining. The other would log "made 3 calls" and hit the limit.
+
+When agents got cut off early, they synthesized answers from incomplete data. The orchestrator still returned a response — it just couldn't be trusted. Same question, different answer quality depending on race timing.
+
+**The cost:** Non-deterministic agent behavior in production. No retries needed — the system "worked" — but answer quality varied unpredictably based on execution timing.
+
+## The race (one example run)
 
 ```mermaid
 flowchart LR
-    A[userA: 2 of 4 calls made] --> B[sources: 2 own\n+ 2 foreign from userB]
-    C[userB: 3 of 4 calls made\ncut off early] --> D[sources: 3 own\n+ 2 foreign from userA]
+    A[MongoDB agent: 2 of 5 calls made] --> B[sources: 2 own\n+ 2 from Cypher agent]
+    C[Cypher agent: 3 of 5 calls made\ncut off early] --> D[sources: 3 own\n+ 2 from MongoDB agent]
 ```
+
+Next run with the same question: MongoDB might complete all 5 calls, Cypher might get cut off at 2. Completely unpredictable.
 
 ## The fix: `contextvars.ContextVar`
 
@@ -87,15 +104,15 @@ After the fix:
 
 ```mermaid
 flowchart LR
-    A[userA: 4 of 4 calls made] --> B[sources: own only\n0 foreign]
-    C[userB: 4 of 4 calls made] --> D[sources: own only\n0 foreign]
+    A[MongoDB agent: 5 of 5 calls made] --> B[sources: 5 own\n0 foreign]
+    C[Cypher agent: 5 of 5 calls made] --> D[sources: 5 own\n0 foreign]
 ```
 
-*Getrennte Rechnung*: each person tracks their own count. Your five calls are yours. Your friend's tally starts at zero and stays there. Free-riding structurally impossible.
+*Getrennte Rechnung*: each agent tracks its own count. No shared tally. No budget theft.
 
 ## Why not `threading.local`?
 
-`threading.local` gives isolation per OS thread — that would have separated the two Streamlit users. But **all asyncio Tasks run on the same OS thread**. When `asyncio.gather` runs both agents, they execute **concurrently** (interleaved by the event loop during I/O waits), not in **parallel** (simultaneously on separate CPU cores). Two agents within one request still share a `threading.local` value because they share the same OS thread.
+`threading.local` gives isolation per OS thread — that would work for separating different user sessions. But **all asyncio Tasks run on the same OS thread**. When `asyncio.gather` runs both agents, they execute **concurrently** (interleaved by the event loop during I/O waits), not in **parallel** (simultaneously on separate CPU cores). Two agents within one request still share a `threading.local` value because they share the same OS thread.
 
 This is the key distinction: `asyncio.gather` creates separate execution contexts (Tasks) without creating separate threads. `threading.local` can't distinguish between them.
 

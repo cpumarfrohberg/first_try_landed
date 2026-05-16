@@ -45,7 +45,6 @@ nav:
       - "The Python Data Model: Why len(collection), Not collection.len()": blog/posts/getting-fluent-in-python.md
       - "Decorators: The Bouncer Owns the Door, Not You": blog/posts/decorators.md
     - 2025:
-      - Understanding Python in simulating music: blog/posts/python-simulating-music.md
       - "Building a Django app for the better good": blog/posts/planning-pads-recycling-django.md
 
 markdown_extensions:

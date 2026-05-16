@@ -115,18 +115,26 @@ _sources.set(_sources.get() + (source,))
 
 A new tuple is created on every update. Nothing is mutated in place. Other contexts are unaffected. Use an immutable default — `()` or `None`. Mutation then requires an explicit `.set()`, which makes the write visible.
 
-## Where you'll hit this in your own agent project
+## Where you might hit this
 
-The pattern isn’t tied to any one codebase. It appears whenever a multi-agent orchestrator tracks per-request state at module level. Concrete cases to check in your own codebase:
+This bug appears when three conditions meet: module-level per-request state, concurrent execution, and singleton agents. If you're missing any of these, you won't hit it.
 
-- **Tool-call budgets** — any counter that resets at the start of a request and stops the agent when it hits a limit.
-- **Source or citation lists** — any list built up during a run and returned with the final answer.
-- **Rate limiting per request** — token counts, API call counters, cost accumulators.
-- **Any module-level variable that `reset()` clears at request start** — if two requests overlap, each `reset()` clears the other's state.
-- **Any orchestrator using `asyncio.gather` to run sub-agents in parallel** — the race happens within a single request, not just across users.
-- **Any agent served over Streamlit, FastAPI, or Gradio** — each user session runs on its own thread, all sharing the same module globals.
+**You're at risk if:**
 
-If your agent has any of these and the state lives at module scope, the bug is there. It just hasn't shown up yet.
+- **Tool-call budgets** — tracked in module-level counters that reset at request start
+- **Source or citation lists** — accumulated at module scope during a run
+- **Rate limiting per request** — token counts, API call counters, cost accumulators stored as module variables
+- **Orchestrators using `asyncio.gather`** — running sub-agents in parallel on the same singleton instances
+- **Web frameworks** — Streamlit, FastAPI, or Gradio where each session/request runs on its own thread
+
+**You're safe if:**
+
+- You create new agent instances per request (no shared state)
+- You pass state explicitly through function parameters or dependency injection
+- You run agents sequentially, one at a time
+- Your state lives in request-scoped objects, not module globals
+
+The bug needs all three: module globals + concurrency + reused instances. If your architecture avoids module-level state, you don't have this problem — whether or not you use `ContextVar`.
 
 ## What this doesn't fix
 

@@ -89,7 +89,22 @@ def _add_source(source: str) -> None:
     _sources.set(_sources.get() + (source,))
 ```
 
-Note the tuple. `ContextVar("sources", default=[])` looks safe but isn't — every context that hasn't called `.set()` shares the same default list object, and a stray `.append()` mutates it for every other context. Same leak in a different form. With a tuple, every update creates a new object via `.set()`, so writes are explicit and contexts stay isolated. Use immutable defaults — `()` or `None`.
+Note the tuple. The naive version looks fine:
+
+```python
+_sources: ContextVar[list[str]] = ContextVar("sources", default=[])
+_sources.get().append("source-A")  # looks safe, isn't
+```
+
+`ContextVar.get()` returns the value set in the current context — *or* the default if no `.set()` was ever called. Every context that hasn't called `.set()` gets back the *same* default list object. A stray `.append()` mutates it for every other context. Same leak in a different form.
+
+The tuple version forces `.set()` on every update, which is per-context by design. Mutation isn't possible:
+
+```python
+_sources.set(_sources.get() + (source,))
+```
+
+Use immutable defaults — `()` or `None`.
 
 After the fix:
 

@@ -34,13 +34,13 @@ In Germany, you can ask for *Getrennte Rechnung* — separate checks. Each perso
 
 ## What broke
 
-Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every thread in the process. Streamlit puts each user session on its own OS thread. Two simultaneous users share that integer.
+Python modules are singletons cached in `sys.modules`. `_call_count` is one integer in memory, shared by every execution context. When `asyncio.gather` runs both agents in parallel, they create separate asyncio Tasks — but both Tasks share the same module-level `_call_count`.
 
 This creates a **race condition** — the outcome depends on unpredictable timing. Three failures result:
 
 1. Each agent called `reset_tool_call_count()` at startup, zeroing a counter the other agent had already incremented.
 2. Both agents incremented the same `_call_count`, consuming each other's budgets.
-3. `get_sources()` returned a mix of both users' source IDs — a data leak.
+3. `get_sources()` returned a mix of both agents' source IDs — a data leak.
 
 `threading.Lock` made each write atomic (preventing memory corruption), but it didn't create per-request isolation. The lock ensures **thread safety** at the operation level — no corrupted increments. It doesn't provide **request isolation** — separate state per agent run.
 

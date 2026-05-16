@@ -1,12 +1,12 @@
 # ContextVar: Getrennte Rechnung for Parallel Agent Runs
 
-Bob Belderbos recently wrote about [a race condition Rust wouldn't let you write](https://belderbos.dev/blog/race-condition-rust-wouldnt-let-me-write/) — a tool-call counter shared between parallel agents in a Python service. He walked through how Rust's compiler would have blocked the bug at four different points. This is the Python side: what the bug looked like in production, how `contextvars.ContextVar` fixed it, and where you'll hit the same pattern in your own agent pipelines.
+Bob Belderbos recently wrote about [a race condition Rust wouldn't let you write](https://belderbos.dev/blog/race-condition-rust-wouldnt-let-me-write/) — a tool-call counter shared between parallel agents in a Python service. He walked through how Rust's compiler would have blocked the bug at four different points. This is the Python side: what the bug looked like in production, how `contextvars.ContextVar` fixed it, and where you'll hit the same pattern in your own multi-agent orchestrators.
 
 The bug appeared when an orchestrator called both agents — MongoDB for text search and Cypher for graph queries — in parallel via `asyncio.gather`. Testing agents individually: no issues. Running both in parallel: agents hit their five-call limit after two or three actual calls because they consumed each other's budgets from a shared counter.
 
 ## The setup
 
-The pipeline routes natural-language (NL) questions to two sub-agents in parallel via `asyncio.gather` — a MongoDB/RAG agent (text-searching in named DB) and a Cypher agent (translating NL into cypher queries for retrieving data from a graph DB). Each request has a budget of five tool calls. The budget lived in a shared module:
+An orchestrator agent routes natural-language questions to specialized sub-agents in parallel via `asyncio.gather` — a MongoDB agent for text search and a Cypher agent for graph queries. Each sub-agent has a budget of five tool calls. The budget lived in a shared module:
 
 ```python
 _call_count = 0
@@ -126,13 +126,13 @@ A new tuple is created on every update. Nothing is mutated in place. Other conte
 
 ## Where you'll hit this in your own agent project
 
-The pattern isn’t tied to any one codebase. It appears whenever an agent pipeline tracks per-request state at module level. Concrete cases to check in your own codebase:
+The pattern isn’t tied to any one codebase. It appears whenever a multi-agent orchestrator tracks per-request state at module level. Concrete cases to check in your own codebase:
 
 - **Tool-call budgets** — any counter that resets at the start of a request and stops the agent when it hits a limit.
 - **Source or citation lists** — any list built up during a run and returned with the final answer.
 - **Rate limiting per request** — token counts, API call counters, cost accumulators.
 - **Any module-level variable that `reset()` clears at request start** — if two requests overlap, each `reset()` clears the other's state.
-- **Any pipeline using `asyncio.gather` to run sub-agents in parallel** — the race happens within a single request, not just across users.
+- **Any orchestrator using `asyncio.gather` to run sub-agents in parallel** — the race happens within a single request, not just across users.
 - **Any agent served over Streamlit, FastAPI, or Gradio** — each user session runs on its own thread, all sharing the same module globals.
 
 If your agent has any of these and the state lives at module scope, the bug is there. It just hasn't shown up yet.
